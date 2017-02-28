@@ -394,6 +394,8 @@ namespace CFL
             {
                 while (dv.Count >= 2)
                 {
+                    // Rewriting via R2
+                    // Lc Rc ~> Lc (U head(Rc) head(tail(Rc))) tail(tail(Rc))
                     var left = dv.First.Value;
                     var right = dv.First.Next.Value;
                     var reductions = Grammar.Lookup(left.Production, right.Production);
@@ -413,6 +415,8 @@ namespace CFL
                 at--;
                 if (at >= 0)
                 {
+                    // Rewriting via R1
+                    // Lc Rc ~> (Lc \ w) (U w) Rc
                     dv.AddFirst(tokens[at]);
                 }
             }

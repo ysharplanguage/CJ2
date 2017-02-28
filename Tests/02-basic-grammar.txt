@@ -1,0 +1,20 @@
+#
+# http://lambda-the-ultimate.org/node/5414#comment-93981
+# [Gayler Harford, A., Heuringt, V.P. and Main, M. G., 1992. A New Parsing Method for Non-LR (1) Grammars]
+# not LL(1), not LR(0), not SLR(1), not LALR(1), not LR(1)
+#
+S -> H Q
+H -> C A
+Q -> B U
+Q -> B V
+U -> X Y
+V -> X Z
+#
+C -> c
+A -> a
+B -> b
+X -> x
+Y -> y
+Z -> z
+#
+#

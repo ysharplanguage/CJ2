@@ -1,0 +1,16 @@
+#
+# { a^i b^j, i > j > 0 }
+# S -> a S | a P
+# P -> a P b | a b
+# SLR(1), LALR(1), LR(1); not LL(1), not LR(0)
+#
+S -> A S
+S -> A P
+P -> A Q
+P -> A B
+Q -> P B
+#
+A -> a
+B -> b
+#
+#

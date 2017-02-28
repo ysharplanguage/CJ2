@@ -1,0 +1,16 @@
+Still pretty raw.
+
+Usage:
+
+runtests cyk
+or
+runtests cj2
+or
+runtests cyk --verbose
+or
+runtests cj2 --verbose
+
+Each test (in ##-basic-input.txt) ends with a counter example
+(ie, a word *not* belonging to the language)
+in order to expect the output of "KO" instead of "OK".
+

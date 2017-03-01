@@ -1,15 +1,18 @@
 #
 # Pico English
 #
+
 S   -> NP  VP
 VP  -> Vt  NP
 NP  -> Det Noun
 Noun-> Adj Noun
 #
+
 Det -> a		# literals can also be given as "a", "the", etc
 Det -> the		# (use regular expressions to capture specific
 Vt  -> "saw"		# character classes; see below for an example)
 #
+
 Adj -> old
 Adj -> young
 Noun-> boy

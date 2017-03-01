@@ -1,0 +1,15 @@
+#
+# Jan Rekers, Parser Generation for Interactive Environments, 1992
+# { x b^n, n >= 0 }
+# S -> A S b
+# S -> x
+# A ->
+#
+
+S -> S B
+S -> x
+#
+
+B -> b
+#
+#

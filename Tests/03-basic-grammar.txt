@@ -1,6 +1,7 @@
 #
 # http://lambda-the-ultimate.org/node/5414#comment-93991
 #
+
 S -> Q H
 H -> A C
 Q -> U B
@@ -8,6 +9,7 @@ Q -> V B
 U -> Y X
 V -> Z X
 #
+
 C -> c
 A -> a
 B -> b

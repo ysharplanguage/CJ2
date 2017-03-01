@@ -5,12 +5,14 @@
 # P -> b P a | b a
 # SLR(1), LALR(1), LR(1); not LL(1), not LR(0)
 #
+
 S -> S A
 S -> P A
 P -> Q A
 P -> B A
 Q -> B P
 #
+
 A -> a
 B -> b
 #

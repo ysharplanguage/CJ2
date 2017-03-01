@@ -1,0 +1,301 @@
+CJ2 01-basic-grammar.txt 01-basic-input.txt 
+#
+# Pico English
+#
+
+S   -> NP  VP
+VP  -> Vt  NP
+NP  -> Det Noun
+Noun-> Adj Noun
+#
+
+Det -> a		# literals can also be given as "a", "the", etc
+Det -> the		# (use regular expressions to capture specific
+Vt  -> "saw"		# character classes; see below for an example)
+#
+
+Adj -> old
+Adj -> young
+Noun-> boy
+Noun-> dragon
+Noun-> @"[A-Za-z]+"	# (regular expression)
+#
+#
+(in       5 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: KO
+
+CJ2 02-basic-grammar.txt 02-basic-input.txt 
+#
+# http://lambda-the-ultimate.org/node/5414#comment-93981
+# [Gayler Harford, A., Heuringt, V.P. and Main, M. G., 1992. A New Parsing Method for Non-LR (1) Grammars]
+# not LL(1), not LR(0), not SLR(1), not LALR(1), not LR(1)
+#
+
+S -> H Q
+H -> C A
+Q -> B U
+Q -> B V
+U -> X Y
+V -> X Z
+#
+
+C -> c
+A -> a
+B -> b
+X -> x
+Y -> y
+Z -> z
+#
+#
+(in       3 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: KO
+
+CJ2 03-basic-grammar.txt 03-basic-input.txt 
+#
+# http://lambda-the-ultimate.org/node/5414#comment-93991
+#
+
+S -> Q H
+H -> A C
+Q -> U B
+Q -> V B
+U -> Y X
+V -> Z X
+#
+
+C -> c
+A -> a
+B -> b
+X -> x
+Y -> y
+Z -> z
+#
+#
+(in       3 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: KO
+
+CJ2 04-basic-grammar.txt 04-basic-input.txt 
+#
+# { a^i b^j, i > j > 0 }
+# S -> a S | a P
+# P -> a P b | a b
+# SLR(1), LALR(1), LR(1); not LL(1), not LR(0)
+#
+
+S -> A S
+S -> A P
+P -> A Q
+P -> A B
+Q -> P B
+#
+
+A -> a
+B -> b
+#
+#
+(in       3 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: OK
+(in       0 ms) line #      4: OK
+(in       0 ms) line #      5: OK
+(in       0 ms) line #      6: OK
+(in       0 ms) line #      7: OK
+(in       0 ms) line #      8: OK
+(in       0 ms) line #      9: OK
+(in       0 ms) line #     10: OK
+(in       0 ms) line #     11: OK
+(in       0 ms) line #     12: OK
+(in       0 ms) line #     13: OK
+(in       0 ms) line #     14: OK
+(in       0 ms) line #     15: OK
+(in       0 ms) line #     16: OK
+(in       0 ms) line #     17: OK
+(in       0 ms) line #     18: OK
+(in       0 ms) line #     19: OK
+(in       0 ms) line #     20: OK
+(in       0 ms) line #     21: OK
+(in       0 ms) line #     22: KO
+
+CJ2 04-basic-grammar.txt 04-basic-input-big.txt 
+#
+# { a^i b^j, i > j > 0 }
+# S -> a S | a P
+# P -> a P b | a b
+# SLR(1), LALR(1), LR(1); not LL(1), not LR(0)
+#
+
+S -> A S
+S -> A P
+P -> A Q
+P -> A B
+Q -> P B
+#
+
+A -> a
+B -> b
+#
+#
+(in      10 ms) line #      1: OK
+(in       5 ms) line #      2: KO
+
+CJ2 05-basic-grammar.txt 05-basic-input.txt 
+#
+# http://lambda-the-ultimate.org/node/5414#comment-94006
+# { b^i a^j, 0 < i < j }
+# S -> S a | P a
+# P -> b P a | b a
+# SLR(1), LALR(1), LR(1); not LL(1), not LR(0)
+#
+
+S -> S A
+S -> P A
+P -> Q A
+P -> B A
+Q -> B P
+#
+
+A -> a
+B -> b
+#
+#
+(in       3 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: OK
+(in       0 ms) line #      4: OK
+(in       0 ms) line #      5: OK
+(in       0 ms) line #      6: OK
+(in       0 ms) line #      7: OK
+(in       0 ms) line #      8: OK
+(in       0 ms) line #      9: OK
+(in       0 ms) line #     10: OK
+(in       0 ms) line #     11: OK
+(in       0 ms) line #     12: OK
+(in       0 ms) line #     13: OK
+(in       0 ms) line #     14: OK
+(in       0 ms) line #     15: OK
+(in       0 ms) line #     16: OK
+(in       0 ms) line #     17: OK
+(in       0 ms) line #     18: OK
+(in       0 ms) line #     19: OK
+(in       0 ms) line #     20: OK
+(in       0 ms) line #     21: OK
+(in       0 ms) line #     22: KO
+
+CJ2 06-basic-grammar.txt 06-basic-input.txt 
+#
+# S -> a A a
+# A -> b B b
+# B -> c C c
+# C -> S
+# C ->
+#
+# sample word: a  b  c  a  b  c   c  b  a  c  b  a
+#               \  \  \  \  \ \ C / /  /  /  /  /
+#                \  \  \  \  \ \|/ /  /  /  /  /
+#                 \  \  \  \  \ B /  /  /  /  /
+#                  \  \  \  \  \|/  /  /  /  /
+#                   \  \  \  \  A  /  /  /  /
+#                    \  \  \  \ | /  /  /  /
+#                     \  \  \  \S/  /  /  /
+#                      \  \  \  |  /  /  /
+#                       \  \  \ C /  /  /
+#                        \  \  \|/  /  /
+#                         \  \  B  /  /
+#                          \  \ | /  /
+#                           \  \|/  /
+#                            \  A  /
+#                             \ | /
+#                              \|/
+#                               S
+#
+# parsed in CNF:
+#
+# ( S ( AO ( A a ) ( O ( BI ( B b ) ( I ( CS ( C c ) ( S ( AO ( A a ) ( O ( BI ( B b ) ( I ( C c ) ( C c ) ) ) ( B b ) ) ) ( A a ) ) ) ( C c ) ) ) ( B b ) ) ) ( A a ) )
+#
+#               a   b  c   a   b  c  c   b   a   c    b   a
+#                \   \  \   \   \  \ /  /   /   /    /   /
+#                 \   \  \   \   B  I  B   /   /    /   /
+#                  \   \  \   \   BI  /   /   /    /   /
+#                   \   \  \   \   \ /   /   /    /   /
+#                    \   \  \   A   O   /   /    /   /
+#                     \   \  \   \ /   /   /    /   /
+#                      \   \  \   AO  A   /    /   /
+#                       \   \  \   \ /   /    /   /
+#                        \   \  C   S   /    /   /
+#                         \   \  \ /   /    /   /
+#                          \   \  CS  C    /   /
+#                           \   \  \ /    /   /
+#                            \   B  I    /   /
+#                             \   BI    B   /
+#                              \   \   /   /
+#                               \   \ /   /
+#                                A   O   /
+#                                 \ /   /
+#                                  AO  /
+#                                   \ /
+#                                    S
+#
+
+S -> AO A
+AO -> A O
+O -> BI B
+BI -> B I
+I -> CS C
+I -> C C
+CS -> C S
+#
+
+A -> a
+B -> b
+C -> c
+#
+#
+(in       3 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: OK
+(in       0 ms) line #      4: OK
+(in       0 ms) line #      5: OK
+(in       0 ms) line #      6: OK
+(in       2 ms) line #      7: OK
+(in       3 ms) line #      8: KO
+
+CJ2 07-basic-grammar.txt 07-basic-input.txt 
+#
+# Jan Rekers, Parser Generation for Interactive Environments, 1992
+# { x b^n, n >= 0 }
+# S -> A S b
+# S -> x
+# A ->
+#
+
+S -> S B
+S -> x
+#
+
+B -> b
+#
+#
+(in       3 ms) line #      1: OK
+(in       0 ms) line #      2: OK
+(in       0 ms) line #      3: OK
+(in       0 ms) line #      4: OK
+(in       0 ms) line #      5: OK
+(in       0 ms) line #      6: OK
+(in       0 ms) line #      7: OK
+(in       0 ms) line #      8: OK
+(in       0 ms) line #      9: OK
+(in       0 ms) line #     10: OK
+(in       6 ms) line #     11: OK
+(in       5 ms) line #     12: OK
+(in       4 ms) line #     13: OK
+(in       4 ms) line #     14: OK
+(in       5 ms) line #     15: OK
+(in       5 ms) line #     16: OK
+(in       5 ms) line #     17: OK
+(in       5 ms) line #     18: OK
+(in       5 ms) line #     19: OK
+(in       6 ms) line #     20: KO
+

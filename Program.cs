@@ -454,10 +454,13 @@ namespace CFL
 
         public override CflParse Parse(string input)
         {
-            CflParse derivative;
             var tokens = Tokenize(input);
-            derivative = LeftDerivative(tokens, input);
-            return derivative = derivative.Production.Lhs != Grammar.Start.Lhs ? RightDerivative(tokens, input) : derivative;
+            var derivative = LeftDerivative(tokens, input);
+            return
+                derivative.Production.Lhs != Grammar.Start.Lhs ?
+                RightDerivative(tokens, input)
+                :
+                derivative;
         }
     }
 

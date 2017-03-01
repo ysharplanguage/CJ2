@@ -23,3 +23,11 @@ bin\Debug\cfl %1 Tests\04-basic-grammar.txt %2 < Tests\04-basic-input-big.txt
 echo %1 05-basic-grammar.txt 05-basic-input.txt %2
 type Tests\05-basic-grammar.txt
 bin\Debug\cfl %1 Tests\05-basic-grammar.txt %2 < Tests\05-basic-input.txt
+
+echo %1 06-basic-grammar.txt 06-basic-input.txt %2
+type Tests\06-basic-grammar.txt
+bin\Debug\cfl %1 Tests\06-basic-grammar.txt %2 < Tests\06-basic-input.txt
+
+echo %1 07-basic-grammar.txt 07-basic-input.txt %2
+type Tests\07-basic-grammar.txt
+bin\Debug\cfl %1 Tests\07-basic-grammar.txt %2 < Tests\07-basic-input.txt

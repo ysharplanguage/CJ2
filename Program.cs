@@ -142,7 +142,7 @@ namespace Common
             {
                 var spec = specs[at];
                 string line;
-                if (!(line = spec.Trim()).StartsWith("#"))
+                if (!(line = trim(spec)).StartsWith("#"))
                 {
                     var sides = line.Split(new[] { "->" }, StringSplitOptions.RemoveEmptyEntries);
                     if (sides.Length == 2)
@@ -171,7 +171,14 @@ namespace Common
                             {
                                 Binaries.Add(binaryKey, new List<CnfProduction>());
                             }
-                            Binaries[binaryKey].Add(reduction);
+                            if (reduction.Lhs != Start.Lhs)
+                            {
+                                Binaries[binaryKey].Insert(0, reduction);
+                            }
+                            else
+                            {
+                                Binaries[binaryKey].Add(reduction);
+                            }
                         }
                     }
                 }
@@ -185,11 +192,25 @@ namespace Common
             return this;
         }
 
-        public IList<CnfProduction> Lookup(CnfProduction left, CnfProduction right)
+        public IList<CnfProduction> Lookup(CnfProduction left, CnfProduction right, bool reduceStart)
         {
             IList<CnfProduction> reductions;
             Binaries.TryGetValue(ReductionKey(left.Lhs, right.Lhs), out reductions);
-            return reductions;
+            return
+                reduceStart ?
+                (
+                    reductions != null ?
+                    (
+                        reductions[reductions.Count - 1].Lhs == Start.Lhs ?
+                        new[] { reductions[reductions.Count - 1] }
+                        :
+                        null
+                    )
+                    :
+                    reductions
+                )
+                :
+                reductions;
         }
 
         public IDictionary<string, CnfProduction> Productions { get; protected set; }
@@ -333,7 +354,8 @@ namespace CFL
                         var right = matrix[l - p - 1, s + p - 1];
                         if ((left != null) && (right != null))
                         {
-                            var reductions = Grammar.Lookup(left.Production, right.Production);
+                            var reduceStart = (l == length) && (s == 1);
+                            var reductions = Grammar.Lookup(left.Production, right.Production, reduceStart);
                             if (reductions != null)
                             {
                                 var production = reductions[0];
@@ -362,7 +384,8 @@ namespace CFL
                 {
                     var left = dv.Last.Previous.Value;
                     var right = dv.Last.Value;
-                    var reductions = Grammar.Lookup(left.Production, right.Production);
+                    var reduceStart = (dv.Count == 2) && (at == length - 1);
+                    var reductions = Grammar.Lookup(left.Production, right.Production, reduceStart);
                     if (reductions != null)
                     {
                         var production = reductions[0];
@@ -398,7 +421,8 @@ namespace CFL
                     // Lc Rc ~> Lc (U head(Rc) head(tail(Rc))) tail(tail(Rc))
                     var left = dv.First.Value;
                     var right = dv.First.Next.Value;
-                    var reductions = Grammar.Lookup(left.Production, right.Production);
+                    var reduceStart = (dv.Count == 2) && (at == 0);
+                    var reductions = Grammar.Lookup(left.Production, right.Production, reduceStart);
                     if (reductions != null)
                     {
                         var production = reductions[0];
@@ -464,6 +488,7 @@ namespace CFL
             var verbose = (args.Length > 2) && (args[2] == "--verbose");
 
             var parser = CreateParser(args[0], grammar);
+
             var lineNo = 0;
             string input;
             while ((input = Console.ReadLine()) != null)

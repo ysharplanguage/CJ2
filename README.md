@@ -1,4 +1,4 @@
-# CJ2 Algorithm
+# CJ<sup>2</sup> Algorithm
 
 ## Another way to look at the CNF
 
@@ -8,4 +8,4 @@
 
 ![{ a^i b^j, i > j > 0 }](cj2.jpg)
 
-CJ
+CJJ

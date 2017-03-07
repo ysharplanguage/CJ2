@@ -1,0 +1,19 @@
+#
+# https://en.wikipedia.org/wiki/CYK_algorithm#Example
+#
+
+S : NP VP
+VP : VP PP
+VP : V NP
+PP : P NP
+NP : Det N
+
+VP : eats
+NP : she
+V : eats
+P : with
+N : fish
+N : fork
+Det : a
+#
+#

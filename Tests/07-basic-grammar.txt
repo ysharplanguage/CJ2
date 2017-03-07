@@ -6,8 +6,8 @@
 # A ->
 #
 
-S -> S B
-S -> x
+S : S B
+S : x
 #
 
 B -> b

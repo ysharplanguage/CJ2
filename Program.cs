@@ -1,4 +1,4 @@
-﻿/* Copyright (c) 2017 Cyril Jandia
+﻿/* Copyright(c) 2017 Cyril Jandia
 
 http://www.cjandia.com/
 
@@ -26,7 +26,10 @@ not be used in advertising or otherwise to promote the sale, use or
 other dealings in this Software without prior written authorization
 from Cyril Jandia.
 
-Inquiries : ysharp {dot} design {at} gmail {dot} com */
+Inquiries : ysharp { dot}
+design { at}
+gmail { dot}
+com */
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -40,29 +43,82 @@ namespace Common
     #region Context-free Language Parsing (interface)
 
     #region Chomsky Normal Form (interface)
+    public class CnfLexicon
+    {
+        protected CnfProduction[] Lexicals { get; private set; }
+
+        protected HashSet<string> Literals { get; private set; }
+
+        public CnfLexicon(CnfProduction[] lexicals)
+        {
+            Literals =
+                new HashSet<string>
+                (
+                    (Lexicals = lexicals).
+                    Where(lexical => lexical.IsLiteral).
+                    Select(lexical => lexical.Literal)
+                );
+        }
+
+        public Tuple<string, string[]> Match(string input)
+        {
+            var value = null as string;
+            var match = null as string;
+            var found =
+                Lexicals.
+                Where
+                (
+                    lexical =>
+                    {
+                        if (((match = lexical.Match(input)) != null) && (match.Length > 0))
+                        {
+                            if (lexical.IsLiteral || !Literals.Contains(match))
+                            {
+                                value = value ?? match;
+                                return match == value;
+                            }
+                        }
+                        return false;
+                    }
+                ).
+                Select(lexical => lexical.Lhs).
+                ToArray();
+            return Tuple.Create(value, found);
+        }
+    }
+
     public class CnfProduction : Tuple<string, string>
     {
-        protected string Literal { get; private set; }
+        protected Regex Acceptor { get; private set; }
 
-        protected Regex Pattern { get; private set; }
+        public CnfProduction(string lhs, string rhs, int index)
+            : this(lhs, rhs, null, index)
+        {
+        }
 
-        public CnfProduction(string lhs, string rhs, int index, bool isLexical)
-            : base(lhs, rhs)
+        public CnfProduction(string lhs, string rhs1, string rhs2, int index)
+            : base(lhs, rhs2 != null ? string.Concat(rhs1, ' ', rhs2) : rhs1)
         {
             Index = index;
-            if (IsLexical = isLexical)
+            Rhs1 = rhs1;
+            Rhs2 = rhs2;
+            if (IsLexical)
             {
-                if ((rhs.Length > 3) && rhs.StartsWith("@\"") && (rhs[rhs.Length - 1] == '"'))
+                if ((Rhs.Length > 3) && Rhs.StartsWith("@\"") && (Rhs[Rhs.Length - 1] == '"'))
                 {
-                    Pattern = new Regex(string.Format("^({0})", rhs.Substring(2, rhs.Length - 3)), RegexOptions.Compiled);
+                    Pattern = Rhs.Substring(2, Rhs.Length - 3);
                 }
-                else if ((rhs.Length > 2) && (rhs[0] == '"') && (rhs[rhs.Length - 1] == '"'))
+                else if ((Rhs.Length > 2) && (Rhs[0] == '"') && (Rhs[Rhs.Length - 1] == '"'))
                 {
-                    Literal = rhs.Substring(1, rhs.Length - 2);
+                    Literal = Rhs.Substring(1, Rhs.Length - 2);
                 }
                 else
                 {
-                    Literal = rhs;
+                    Literal = Rhs;
+                }
+                if (Pattern != null)
+                {
+                    Acceptor = new Regex(string.Format("^({0})", Pattern), RegexOptions.Compiled);
                 }
             }
         }
@@ -77,25 +133,19 @@ namespace Common
             return string.Concat(Lhs, " -> ", Rhs);
         }
 
-        public string Lexical(string input)
+        public string Match(string input)
         {
             Match match;
-            var token =
-                IsLexical ?
+            return
+                !string.IsNullOrEmpty(input) ?
                 (
-                    Pattern != null ?
-                    (
-                        (match = Pattern.Match(input)).Success ?
-                        match.Value
-                        :
-                        string.Empty
-                    )
+                    !IsLiteral ?
+                    (match = Acceptor.Match(input)).Success ? match.Value : null
                     :
-                    (input.StartsWith(Literal) ? Literal : string.Empty)
+                    (input.StartsWith(Literal) ? Literal : null)
                 )
                 :
-                string.Empty;
-            return token;
+                null;
         }
 
         public string Lhs { get { return Item1; } }
@@ -104,12 +154,38 @@ namespace Common
 
         public int Index { get; private set; }
 
-        public bool IsLexical { get; private set; }
+        public string Rhs1 { get; private set; }
+
+        public string Rhs2 { get; private set; }
+
+        public bool IsLiteral { get { return Literal != null; } }
+
+        public bool IsLexical { get { return Rhs2 == null; } }
+
+        public string Pattern { get; private set; }
+
+        public string Literal { get; private set; }
+    }
+
+    public class CnfProductions : HashSet<string>
+    {
+        protected CnfGrammar Grammar { get; private set; }
+
+        public CnfProductions(CnfGrammar grammar, params string[] elements)
+            : base(elements)
+        {
+            Grammar = grammar;
+        }
+
+        public override string ToString()
+        {
+            return string.Concat('{', string.Join(", ", this.OrderBy(lhs => lhs)), '}');
+        }
     }
 
     public class CnfGrammar
     {
-        protected virtual Regex DefineInsignificantWhiteSpace()
+        protected virtual Regex GetInsignificantWhiteSpace()
         {
             return DefaultWhiteSpace;
         }
@@ -119,148 +195,156 @@ namespace Common
             return string.Concat(from, '>', to);
         }
 
-        protected IDictionary<string, IList<CnfProduction>> Binaries { get; private set; }
+        public readonly Regex DefaultWhiteSpace = new Regex("^(\\s+)", RegexOptions.Compiled);
 
-        public readonly Regex DefaultWhiteSpace = new Regex("\\s+", RegexOptions.Compiled);
+        public readonly CnfProductions Error;
 
         public readonly Regex WhiteSpace;
 
         public CnfGrammar()
         {
             Productions = new Dictionary<string, CnfProduction>();
-            Binaries = new Dictionary<string, IList<CnfProduction>>();
-            Error = new CnfProduction("Error", string.Empty, -1, true);
-            WhiteSpace = DefineInsignificantWhiteSpace();
+            Error = new CnfProductions(this, "Error");
+            WhiteSpace = GetInsignificantWhiteSpace();
         }
 
         public virtual CnfGrammar Load(string[] specs)
         {
+            var splitter = new Regex("\\s+");
+            var binaries = new Dictionary<string, IList<CnfProduction>>();
             Func<string, string> trim = s => s.Trim(new[] { '\t', ' ' });
+            Func<string, string[]> split = s => splitter.Split(s);
             Productions.Clear();
-            Binaries.Clear();
             for (var at = 0; at < specs.Length; at++)
             {
                 var spec = specs[at];
                 string line;
                 if (!(line = trim(spec)).StartsWith("#"))
                 {
-                    var sides = line.Split(new[] { "->" }, StringSplitOptions.RemoveEmptyEntries);
-                    if (sides.Length == 2)
+                    var separatorIndex = line.IndexOf("->");
+                    bool arrow;
+                    separatorIndex = (arrow = (separatorIndex > 0)) ? separatorIndex : line.IndexOf(":");
+                    var sides =
+                        separatorIndex > 0 ?
+                        new[]
+                        {
+                            line.Substring(0, separatorIndex),
+                            line.Substring(separatorIndex + (arrow ? 2 : 1))
+                        }
+                        :
+                        null;
+                    if (sides != null)
                     {
                         var lhs = trim(sides[0]);
-                        var rhs = sides[1];
+                        var rhs = trim(sides[1]);
                         var commentMark = rhs.IndexOf('#');
                         rhs = trim(commentMark >= 0 ? rhs.Substring(0, commentMark) : rhs);
-                        var normalizedRhs = DefaultWhiteSpace.Split(rhs);
+                        var normalizedRhs = split(rhs);
                         var isBinaryRhs = normalizedRhs.Length > 1;
                         var binLeft = normalizedRhs[0];
                         var binRight = isBinaryRhs ? normalizedRhs[1] : null;
-                        rhs = isBinaryRhs ? string.Concat(binLeft, ' ', binRight) : binLeft;
-                        var reduction = new CnfProduction(lhs, rhs, at, !isBinaryRhs);
-                        var binaryKey = isBinaryRhs ? ReductionKey(binLeft, binRight) : null;
-                        var reduceKey = isBinaryRhs ? ReductionKey(binaryKey, lhs) : ReductionKey(rhs, lhs);
+                        var reduction = new CnfProduction(lhs, binLeft, binRight, at);
+                        var binaryKey = isBinaryRhs ? string.Concat(binLeft, ' ', binRight) : null;
+                        var reduceKey = ReductionKey(binaryKey ?? reduction.Rhs, lhs);
                         if (Productions.Count < 1)
                         {
                             Start = reduction;
                         }
                         Productions.Add(reduceKey, reduction);
-                        if (isBinaryRhs)
+                        if (binaryKey != null)
                         {
                             IList<CnfProduction> reductions;
-                            if (!Binaries.TryGetValue(binaryKey, out reductions))
+                            if (!binaries.TryGetValue(binaryKey, out reductions))
                             {
-                                Binaries.Add(binaryKey, new List<CnfProduction>());
+                                binaries.Add(binaryKey, new List<CnfProduction>());
                             }
-                            if (reduction.Lhs != Start.Lhs)
-                            {
-                                Binaries[binaryKey].Insert(0, reduction);
-                            }
-                            else
-                            {
-                                Binaries[binaryKey].Add(reduction);
-                            }
+                            binaries[binaryKey].Add(reduction);
                         }
                     }
                 }
             }
+            Binaries = binaries.Values.SelectMany(productions => productions).ToArray();
             Lexicon =
-                Productions.
-                Values.
-                Where(production => production.IsLexical).
-                OrderBy(production => production.Index).
-                ToArray();
+                new CnfLexicon
+                (
+                    Productions.
+                    Values.
+                    Where(production => production.IsLexical).
+                    OrderByDescending(production => !production.IsLiteral ? production.Pattern.Length : production.Literal.Length).
+                    ToArray()
+                );
             return this;
         }
 
-        public IList<CnfProduction> Lookup(CnfProduction left, CnfProduction right, bool reduceStart)
+        //TODO: implement
+        public Tuple<CnfProduction, CnfProduction> GetKernel()
         {
-            IList<CnfProduction> reductions;
-            Binaries.TryGetValue(ReductionKey(left.Lhs, right.Lhs), out reductions);
-            return
-                reduceStart ?
+            return null;
+        }
+
+        public CnfProductions Lookup(CnfProductions left, CnfProductions right)
+        {
+            var reductions =
+                Binaries.
+                Aggregate
                 (
-                    reductions != null ?
-                    (
-                        reductions[reductions.Count - 1].Lhs == Start.Lhs ?
-                        new[] { reductions[reductions.Count - 1] }
-                        :
-                        null
-                    )
-                    :
-                    reductions
-                )
-                :
-                reductions;
+                    new CnfProductions(this),
+                    (found, production)
+                        =>
+                        {
+                            if (left.Contains(production.Rhs1) && right.Contains(production.Rhs2))
+                            {
+                                found.Add(production.Lhs);
+                            }
+                            return found;
+                        }
+                );
+            return (reductions != null) && (reductions.Count > 0) ? reductions : null;
         }
 
         public IDictionary<string, CnfProduction> Productions { get; protected set; }
 
-        public CnfProduction[] Lexicon { get; protected set; }
+        public CnfProduction[] Binaries { get; protected set; }
+
+        public CnfLexicon Lexicon { get; protected set; }
 
         public CnfProduction Start { get; protected set; }
-
-        public CnfProduction Error { get; protected set; }
     }
     #endregion
 
     public class CflParse : Tuple<CflParse, CflParse>
     {
-        private CflParse(string spaces)
-            : this(null, spaces)
+        public CflParse(string whiteSpace)
+            : this(null, whiteSpace)
         {
         }
 
-        public static CflParse WhiteSpace(string spaces)
-        {
-            return new CflParse(spaces);
-        }
-
-        public CflParse(CnfProduction production, string token)
-            : this(production, null, null)
+        public CflParse(CnfProductions productions, string token)
+            : this(productions, null, null)
         {
             Value = token;
         }
 
-        public CflParse(CnfProduction production, CflParse left, CflParse right)
+        public CflParse(CnfProductions productions, CflParse left, CflParse right)
             : base(left, right)
         {
-            Production = production;
+            Productions = productions;
         }
 
         public override string ToString()
         {
             return
-                Production != null ?
+                Productions != null ?
                 (
-                    (Left != null) && (Right != null) ? string.Format("( {0} {1} {2} )", Production.Lhs, Left, Right)
+                    (Left != null) && (Right != null) ? string.Format("( {0} {1} {2} )", Productions, Left, Right)
                     :
-                    string.Format("( {0} {1} )", Production.Lhs, Value)
+                    string.Format("( {0} {1} )", Productions, Value)
                 )
                 :
                 base.ToString();
         }
 
-        public CnfProduction Production { get; private set; }
+        public CnfProductions Productions { get; private set; }
 
         public CflParse Left { get { return Item1; } }
 
@@ -268,38 +352,67 @@ namespace Common
 
         public string Value { get; private set; }
 
-        public bool IsWhiteSpace { get { return Production == null; } }
+        public bool IsWhiteSpace { get { return Productions == null; } }
     }
 
     public abstract class CflParser
     {
-        private CflParse Next(ref string input)
+        private CflParse Read(ref string input)
         {
             if (!string.IsNullOrEmpty(input))
             {
-                var value = string.Empty;
+                var match = null as Tuple<string, string[]>;
+                var space = null as Match;
                 var sofar = input;
-                var lexical = Grammar.Lexicon.FirstOrDefault(current => (value = current.Lexical(sofar)).Length > 0);
-                var match = lexical != null;
-                if (!match)
+                var lexicals =
+                    !(space = Grammar.WhiteSpace.Match(sofar)).Success ?
+                    (match = Grammar.Lexicon.Match(sofar)).Item2
+                    :
+                    null;
+                if (lexicals != null)
                 {
-                    var spaces = Grammar.WhiteSpace.Match(input);
-                    if (spaces.Success)
+                    if (lexicals.Length > 0)
                     {
-                        input = input.Substring(spaces.Value.Length);
-                        return CflParse.WhiteSpace(spaces.Value);
+                        var productions = new CnfProductions(Grammar, lexicals);
+                        var value = match.Item1;
+                        input = input.Substring(value.Length);
+                        return new CflParse(productions, value);
+                    }
+                    else
+                    {
+                        input = null;
+                        return Error(sofar);
                     }
                 }
-                value = match ? value : input;
-                input = match ? input.Substring(value.Length) : string.Empty;
-                return new CflParse(lexical ?? Grammar.Error, value);
+                else
+                {
+                    input = input.Substring(space.Length);
+                    return WhiteSpace(space.Value);
+                }
             }
             return null;
+        }
+
+        private CflParse Next(ref string input)
+        {
+            CflParse next;
+            while (((next = Read(ref input)) != null) && next.IsWhiteSpace) ;
+            return next;
         }
 
         protected CflParser(CnfGrammar grammar)
         {
             Grammar = grammar;
+        }
+
+        protected CflParse WhiteSpace(string value)
+        {
+            return new CflParse(value);
+        }
+
+        protected CflParse Error(string input)
+        {
+            return new CflParse(Grammar.Error, input);
         }
 
         public CflParse[] Tokenize(string input)
@@ -308,10 +421,7 @@ namespace Common
             CflParse token;
             while ((token = Next(ref input)) != null)
             {
-                if (!token.IsWhiteSpace)
-                {
-                    tokens.Add(token);
-                }
+                tokens.Add(token);
             }
             return tokens.ToArray();
         }
@@ -354,18 +464,23 @@ namespace CFL
                         var right = matrix[l - p - 1, s + p - 1];
                         if ((left != null) && (right != null))
                         {
-                            var reduceStart = (l == length) && (s == 1);
-                            var reductions = Grammar.Lookup(left.Production, right.Production, reduceStart);
+                            var reductions = Grammar.Lookup(left.Productions, right.Productions);
                             if (reductions != null)
                             {
-                                var production = reductions[0];
-                                matrix[l - 1, s - 1] = new CflParse(production, left, right);
+                                if (matrix[l - 1, s - 1] != null)
+                                {
+                                    matrix[l - 1, s - 1].Productions.UnionWith(reductions);
+                                }
+                                else
+                                {
+                                    matrix[l - 1, s - 1] = new CflParse(reductions, left, right);
+                                }
                             }
                         }
                     }
                 }
             }
-            matrix[length - 1, 0] = matrix[length - 1, 0] ?? new CflParse(Grammar.Error, input);
+            matrix[length - 1, 0] = matrix[length - 1, 0] ?? Error(input);
             return matrix[length - 1, 0];
         }
     }
@@ -384,12 +499,10 @@ namespace CFL
                 {
                     var left = dv.Last.Previous.Value;
                     var right = dv.Last.Value;
-                    var reduceStart = (dv.Count == 2) && (at == length - 1);
-                    var reductions = Grammar.Lookup(left.Production, right.Production, reduceStart);
+                    var reductions = Grammar.Lookup(left.Productions, right.Productions);
                     if (reductions != null)
                     {
-                        var production = reductions[0];
-                        var last = new CflParse(production, left, right);
+                        var last = new CflParse(reductions, left, right);
                         dv.RemoveLast();
                         dv.RemoveLast();
                         dv.AddLast(last);
@@ -405,7 +518,7 @@ namespace CFL
                     dv.AddLast(tokens[at]);
                 }
             }
-            return dv.Count == 1 ? dv.Last.Value : new CflParse(Grammar.Error, input);
+            return dv.Count == 1 ? dv.Last.Value : Error(input);
         }
 
         private CflParse RightDerivative(CflParse[] tokens, string input)
@@ -421,12 +534,10 @@ namespace CFL
                     // Lc Rc ~> Lc (U head(Rc) head(tail(Rc))) tail(tail(Rc))
                     var left = dv.First.Value;
                     var right = dv.First.Next.Value;
-                    var reduceStart = (dv.Count == 2) && (at == 0);
-                    var reductions = Grammar.Lookup(left.Production, right.Production, reduceStart);
+                    var reductions = Grammar.Lookup(left.Productions, right.Productions);
                     if (reductions != null)
                     {
-                        var production = reductions[0];
-                        var first = new CflParse(production, left, right);
+                        var first = new CflParse(reductions, left, right);
                         dv.RemoveFirst();
                         dv.RemoveFirst();
                         dv.AddFirst(first);
@@ -444,7 +555,7 @@ namespace CFL
                     dv.AddFirst(tokens[at]);
                 }
             }
-            return dv.Count == 1 ? dv.First.Value : new CflParse(Grammar.Error, input);
+            return dv.Count == 1 ? dv.First.Value : Error(input);
         }
 
         public CJ2Parser(CnfGrammar grammar)
@@ -457,7 +568,7 @@ namespace CFL
             var tokens = Tokenize(input);
             var derivative = LeftDerivative(tokens, input);
             return
-                derivative.Production.Lhs != Grammar.Start.Lhs ?
+                !derivative.Productions.Contains(Grammar.Start.Lhs) ?
                 RightDerivative(tokens, input)
                 :
                 derivative;
@@ -493,6 +604,7 @@ namespace CFL
             var parser = CreateParser(args[0], grammar);
 
             var lineNo = 0;
+            var errors = 0;
             string input;
             while ((input = Console.ReadLine()) != null)
             {
@@ -501,11 +613,17 @@ namespace CFL
                 var parse = parser.Parse(input);
                 sw.Stop();
                 var ms = sw.ElapsedMilliseconds;
-                var ok = parse.Production.Lhs == grammar.Start.Lhs;
+                var ok = parse.Productions.Contains(grammar.Start.Lhs);
                 var details = verbose ? string.Format(": {0} => {1}", input, parse) : string.Empty;
+                errors += !ok ? 1 : 0;
                 Console.WriteLine(string.Format("(in {0} ms) line #{1}: {2}{3}", sw.ElapsedMilliseconds.ToString().PadLeft(7, ' '), (++lineNo).ToString().PadLeft(7, ' '), ok ? "OK" : "KO", details));
             }
+            if (lineNo > 0)
+            {
+                Console.WriteLine(string.Format("{0} / {1} OK: {2}%", lineNo - errors, lineNo, 100 * (lineNo - errors) / lineNo));
+            }
             Console.WriteLine();
+            Environment.Exit(errors > 0 ? 1 : 0);
         }
     }
 }
